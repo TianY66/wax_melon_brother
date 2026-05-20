@@ -1,0 +1,141 @@
+[
+  {
+    "id": "unlock_knife_disc",
+    "name": "解锁菜刀回旋盘",
+    "kind": "unlock_weapon",
+    "target": "knife_disc",
+    "description": "获得新武器：菜刀回旋盘",
+    "weight": 100,
+    "tier": 1
+  },
+  {
+    "id": "unlock_hot_soup",
+    "name": "解锁热汤喷壶",
+    "kind": "unlock_weapon",
+    "target": "hot_soup_sprayer",
+    "description": "获得新武器：热汤喷壶",
+    "weight": 90,
+    "tier": 1
+  },
+  {
+    "id": "unlock_electro_steamer",
+    "name": "解锁电磁蒸笼",
+    "kind": "unlock_weapon",
+    "target": "electro_steamer",
+    "description": "获得新武器：电磁蒸笼",
+    "weight": 80,
+    "tier": 1
+  },
+  {
+    "id": "unlock_cling_laser",
+    "name": "解锁保鲜膜激光",
+    "kind": "unlock_weapon",
+    "target": "cling_wrap_laser",
+    "description": "获得新武器：保鲜膜激光",
+    "weight": 70,
+    "tier": 2
+  },
+  {
+    "id": "unlock_little_drone",
+    "name": "解锁小瓜无人机",
+    "kind": "unlock_weapon",
+    "target": "little_winter_drone",
+    "description": "获得新武器：小瓜无人机",
+    "weight": 75,
+    "tier": 2
+  },
+  {
+    "id": "global_move_speed",
+    "name": "走位加速",
+    "kind": "global",
+    "stat": "move_speed",
+    "value": 0.08,
+    "description": "移动速度提升 8%",
+    "weight": 100,
+    "tier": 1
+  },
+  {
+    "id": "global_pickup_radius",
+    "name": "拾取半径扩大",
+    "kind": "global",
+    "stat": "pickup_radius",
+    "value": 0.12,
+    "description": "拾取半径提升 12%",
+    "weight": 100,
+    "tier": 1
+  },
+  {
+    "id": "global_hp",
+    "name": "最大生命提升",
+    "kind": "global",
+    "stat": "max_hp",
+    "value": 12,
+    "description": "最大生命 +12",
+    "weight": 95,
+    "tier": 1
+  },
+  {
+    "id": "global_cdr",
+    "name": "冷却缩减",
+    "kind": "global",
+    "stat": "cooldown_reduction",
+    "value": 0.08,
+    "description": "武器冷却缩减 8%",
+    "weight": 90,
+    "tier": 1
+  },
+  {
+    "id": "global_crit",
+    "name": "暴击率提升",
+    "kind": "global",
+    "stat": "crit_rate",
+    "value": 0.05,
+    "description": "暴击率 +5%",
+    "weight": 75,
+    "tier": 2
+  },
+  {
+    "id": "global_damage",
+    "name": "刀工提升",
+    "kind": "global",
+    "stat": "damage_bonus",
+    "value": 0.1,
+    "description": "全局伤害 +10%",
+    "weight": 95,
+    "tier": 1
+  },
+  {
+    "id": "weapon_damage",
+    "name": "厨具增压",
+    "kind": "weapon_upgrade",
+    "target": "any",
+    "stat": "damage",
+    "value": 0.15,
+    "description": "当前武器伤害提升 15%",
+    "weight": 100,
+    "tier": 1
+  },
+  {
+    "id": "weapon_cooldown",
+    "name": "火候节流",
+    "kind": "weapon_upgrade",
+    "target": "any",
+    "stat": "cooldown",
+    "value": 0.12,
+    "description": "当前武器冷却缩短 12%",
+    "weight": 95,
+    "tier": 1
+  },
+  {
+    "id": "weapon_projectile",
+    "name": "多锅联动",
+    "kind": "weapon_upgrade",
+    "target": "any",
+    "stat": "projectile_count",
+    "value": 1,
+    "description": "当前武器投射物数量 +1",
+    "weight": 70,
+    "tier": 2
+  }
+]
+

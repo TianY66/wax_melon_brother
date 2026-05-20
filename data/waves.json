@@ -1,0 +1,42 @@
+[
+  {
+    "time_start": 0,
+    "time_end": 120,
+    "enemy_pool": ["knife_mite"],
+    "spawn_interval": 1.0,
+    "max_alive": 20,
+    "elite_chance": 0.0
+  },
+  {
+    "time_start": 120,
+    "time_end": 240,
+    "enemy_pool": ["knife_mite", "fork_hound"],
+    "spawn_interval": 0.85,
+    "max_alive": 28,
+    "elite_chance": 0.0
+  },
+  {
+    "time_start": 240,
+    "time_end": 360,
+    "enemy_pool": ["knife_mite", "fork_hound", "pressure_tank"],
+    "spawn_interval": 0.72,
+    "max_alive": 36,
+    "elite_chance": 0.08
+  },
+  {
+    "time_start": 360,
+    "time_end": 480,
+    "enemy_pool": ["knife_mite", "fork_hound", "pressure_tank", "oil_cannon_ball"],
+    "spawn_interval": 0.62,
+    "max_alive": 44,
+    "elite_chance": 0.12
+  },
+  {
+    "time_start": 480,
+    "time_end": 600,
+    "enemy_pool": ["knife_mite", "fork_hound", "pressure_tank", "oil_cannon_ball", "self_destruct_cleaner"],
+    "spawn_interval": 0.52,
+    "max_alive": 54,
+    "elite_chance": 0.18
+  }
+]

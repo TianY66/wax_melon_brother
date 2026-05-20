@@ -1,0 +1,81 @@
+{
+  "winter_seed_burst": {
+    "name": "冬瓜籽连发",
+    "type": "projectile",
+    "base_damage": 12,
+    "cooldown": 1.1,
+    "projectile_count": 1,
+    "speed": 760,
+    "range": 520,
+    "pierce": 0,
+    "target_type": "nearest",
+    "max_level": 5,
+    "colors": ["#d6ff7a", "#b8ff4d"]
+  },
+  "knife_disc": {
+    "name": "菜刀回旋盘",
+    "type": "orbit",
+    "base_damage": 8,
+    "cooldown": 0.45,
+    "projectile_count": 1,
+    "speed": 0,
+    "range": 92,
+    "pierce": 1,
+    "target_type": "self_orbit",
+    "max_level": 5,
+    "colors": ["#ff9b6a", "#ff6f3c"]
+  },
+  "hot_soup_sprayer": {
+    "name": "热汤喷壶",
+    "type": "forward_line",
+    "base_damage": 20,
+    "cooldown": 1.8,
+    "projectile_count": 1,
+    "speed": 930,
+    "range": 620,
+    "pierce": 2,
+    "target_type": "forward",
+    "max_level": 5,
+    "colors": ["#ffd36e", "#ffb347"]
+  },
+  "electro_steamer": {
+    "name": "电磁蒸笼",
+    "type": "area_random",
+    "base_damage": 28,
+    "cooldown": 2.6,
+    "projectile_count": 1,
+    "speed": 0,
+    "range": 160,
+    "pierce": 0,
+    "target_type": "densest_area",
+    "max_level": 5,
+    "colors": ["#7dd3ff", "#4bb7ff"]
+  },
+  "cling_wrap_laser": {
+    "name": "保鲜膜激光",
+    "type": "beam",
+    "base_damage": 38,
+    "cooldown": 3.2,
+    "projectile_count": 1,
+    "speed": 0,
+    "range": 680,
+    "pierce": 3,
+    "target_type": "nearest",
+    "max_level": 5,
+    "colors": ["#f2ff9e", "#d6ff4d"]
+  },
+  "little_winter_drone": {
+    "name": "小瓜无人机",
+    "type": "companion",
+    "base_damage": 10,
+    "cooldown": 0.85,
+    "projectile_count": 1,
+    "speed": 650,
+    "range": 380,
+    "pierce": 0,
+    "target_type": "nearest",
+    "max_level": 5,
+    "colors": ["#b8e0ff", "#7bbcff"]
+  }
+}
+

@@ -1,0 +1,96 @@
+name: deploy-web
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: ${{ vars.GODOT_VERSION || '4.6.2' }}
+  ITCH_TARGET: ${{ vars.ITCH_TARGET }}
+  ITCH_CHANNEL: ${{ vars.ITCH_CHANNEL || 'html5' }}
+
+jobs:
+  export-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.BUTLER_API_KEY }}" ]; then
+            echo "Missing GitHub secret: BUTLER_API_KEY" >&2
+            exit 1
+          fi
+          if [ -z "${ITCH_TARGET}" ]; then
+            echo "Missing GitHub variable: ITCH_TARGET" >&2
+            exit 1
+          fi
+
+      - name: Set build version
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "BUILD_VERSION=${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y unzip xvfb
+
+      - name: Download Godot editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/godot.zip" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          chmod +x "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+
+      - name: Install Web export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          curl -fsSL -o "$RUNNER_TEMP/export_templates.tpz" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          mkdir -p "$RUNNER_TEMP/export_templates"
+          unzip -q "$RUNNER_TEMP/export_templates.tpz" -d "$RUNNER_TEMP/export_templates"
+          cp -R "$RUNNER_TEMP/export_templates/templates/"* "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+
+      - name: Install butler
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/butler.zip" "https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default"
+          unzip -q "$RUNNER_TEMP/butler.zip" -d "$RUNNER_TEMP/butler"
+          chmod +x "$RUNNER_TEMP/butler/butler"
+          echo "$RUNNER_TEMP/butler" >> "$GITHUB_PATH"
+
+      - name: Export Web build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/web
+          xvfb-run --auto-servernum "$RUNNER_TEMP/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" --headless --path "$GITHUB_WORKSPACE" --export-release "Web" "dist/web/index.html"
+
+      - name: Validate export output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/web/index.html
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          butler push "dist/web" "${ITCH_TARGET}:${ITCH_CHANNEL}" --userversion "${BUILD_VERSION}"

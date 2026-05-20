@@ -1,0 +1,90 @@
+{
+  "knife_mite": {
+    "name": "菜刀螨",
+    "hp": 24,
+    "move_speed": 92,
+    "damage": 10,
+    "contact_interval": 0.65,
+    "drop_exp": 1,
+    "ai_type": "chase",
+    "elite": false,
+    "colors": ["#ff6b6b", "#ff8f8f"]
+  },
+  "fork_hound": {
+    "name": "叉勺猎犬",
+    "hp": 18,
+    "move_speed": 132,
+    "damage": 8,
+    "contact_interval": 0.5,
+    "drop_exp": 1,
+    "ai_type": "chase",
+    "elite": false,
+    "colors": ["#ffb46b", "#ffc98f"]
+  },
+  "pressure_tank": {
+    "name": "压力锅重装体",
+    "hp": 68,
+    "move_speed": 64,
+    "damage": 15,
+    "contact_interval": 0.8,
+    "drop_exp": 3,
+    "ai_type": "tank",
+    "elite": false,
+    "colors": ["#8cc7a1", "#b5e0c1"]
+  },
+  "oil_cannon_ball": {
+    "name": "油烟炮台球",
+    "hp": 36,
+    "move_speed": 80,
+    "damage": 9,
+    "contact_interval": 0.75,
+    "drop_exp": 2,
+    "ai_type": "ranged",
+    "elite": false,
+    "colors": ["#6cc7ff", "#a7e0ff"]
+  },
+  "self_destruct_cleaner": {
+    "name": "自爆清洁球",
+    "hp": 28,
+    "move_speed": 102,
+    "damage": 22,
+    "contact_interval": 0.0,
+    "drop_exp": 2,
+    "ai_type": "explode",
+    "elite": false,
+    "colors": ["#ffe06c", "#fff2a8"]
+  },
+  "elite_cold_box": {
+    "name": "冷柜重装箱",
+    "hp": 160,
+    "move_speed": 72,
+    "damage": 20,
+    "contact_interval": 0.6,
+    "drop_exp": 8,
+    "ai_type": "tank",
+    "elite": true,
+    "colors": ["#a6ffea", "#d4fff6"]
+  },
+  "elite_stir_drone": {
+    "name": "搅拌无人机队长",
+    "hp": 128,
+    "move_speed": 110,
+    "damage": 17,
+    "contact_interval": 0.7,
+    "drop_exp": 10,
+    "ai_type": "ranged",
+    "elite": true,
+    "colors": ["#d8b5ff", "#ead6ff"]
+  },
+  "boss_control_core": {
+    "name": "后厨总控机",
+    "hp": 520,
+    "move_speed": 82,
+    "damage": 24,
+    "contact_interval": 0.45,
+    "drop_exp": 0,
+    "ai_type": "boss",
+    "elite": false,
+    "colors": ["#ff8bd4", "#ffb7e4"]
+  }
+}
