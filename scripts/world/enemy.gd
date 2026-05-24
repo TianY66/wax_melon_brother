@@ -2,13 +2,36 @@ extends CharacterBody2D
 
 signal enemy_dead(enemy_id: String, elite: bool, drop_exp: int, drop_position: Vector2)
 
-const NORMAL_ENEMY_TEXTURE := preload("res://imgs/normal.png")
-const NORMAL_ENEMY_IDS := {
-	"knife_mite": true,
-	"fork_hound": true,
-	"pressure_tank": true,
-	"oil_cannon_ball": true,
-	"self_destruct_cleaner": true
+const MAP_HALF_SIZE := Vector2(1148.0, 648.0)
+const ENEMY_TEXTURES := {
+	"knife_mite": preload("res://imgs/02_小怪/小怪_菜刀螨.png"),
+	"fork_hound": preload("res://imgs/02_小怪/小怪_叉勺猎犬.png"),
+	"pressure_tank": preload("res://imgs/02_小怪/小怪_压力锅重装体.png"),
+	"oil_cannon_ball": preload("res://imgs/02_小怪/小怪_油烟炮台球.png"),
+	"self_destruct_cleaner": preload("res://imgs/02_小怪/小怪_自爆清洁球.png"),
+	"elite_cold_box": preload("res://imgs/03_精英/精英_冷柜重装箱.png"),
+	"elite_stir_drone": preload("res://imgs/03_精英/精英_搅拌无人机队长.png"),
+	"boss_control_core": preload("res://imgs/04_Boss/Boss_后厨总控机.png")
+}
+const ENEMY_VISUAL_SCALE := {
+	"knife_mite": Vector2(0.09, 0.09),
+	"fork_hound": Vector2(0.094, 0.094),
+	"pressure_tank": Vector2(0.102, 0.102),
+	"oil_cannon_ball": Vector2(0.088, 0.088),
+	"self_destruct_cleaner": Vector2(0.09, 0.09),
+	"elite_cold_box": Vector2(0.116, 0.116),
+	"elite_stir_drone": Vector2(0.108, 0.108),
+	"boss_control_core": Vector2(0.19, 0.19)
+}
+const ENEMY_VISUAL_OFFSET := {
+	"knife_mite": Vector2(0, 10),
+	"fork_hound": Vector2(0, 16),
+	"pressure_tank": Vector2(0, 12),
+	"oil_cannon_ball": Vector2(0, 8),
+	"self_destruct_cleaner": Vector2(0, 10),
+	"elite_cold_box": Vector2(0, 12),
+	"elite_stir_drone": Vector2(0, 10),
+	"boss_control_core": Vector2(0, 0)
 }
 
 var enemy_id := ""
@@ -30,6 +53,12 @@ var special_interval := 2.5
 var explode_primed := false
 var explode_countdown := 0.0
 var boss_phase := 0
+var avoidance_radius := 58.0
+var visual_time := 0.0
+
+var visual_root: Node2D
+var visual_sprite: Sprite2D
+var shadow_sprite: Polygon2D
 
 const PROJECTILE_SCENE := preload("res://scenes/world/Projectile.tscn")
 
@@ -48,6 +77,12 @@ func setup(id: String) -> void:
 	if ai_type == "boss":
 		special_interval = 3.0
 		boss_phase = 1
+	if ai_type == "chase":
+		special_interval = 0.45
+	elif ai_type == "tank":
+		special_interval = 0.6
+	elif ai_type == "explode":
+		special_interval = 0.35
 	_add_visual(config)
 	_add_collision()
 
@@ -65,55 +100,15 @@ func apply_time_scaling(step: int) -> void:
 	damage = int(round(damage * damage_multiplier))
 	move_speed *= speed_multiplier
 	contact_interval = max(0.3, contact_interval - 0.01 * difficulty_step)
+	avoidance_radius += difficulty_step * 1.5
 	if ai_type == "ranged" or ai_type == "boss":
 		special_interval = max(0.45, special_interval - 0.04 * difficulty_step)
 
 func _add_visual(config: Dictionary) -> void:
-	if NORMAL_ENEMY_IDS.has(enemy_id):
-		var sprite := Sprite2D.new()
-		sprite.texture = NORMAL_ENEMY_TEXTURE
-		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		sprite.scale = Vector2(0.06, 0.06)
-		sprite.position = Vector2(0, 6)
-		add_child(sprite)
-		return
-
-	var colors: Array = config.get("colors", ["#ffffff"])
-	var col: Color = Color(colors[0]) if not colors.is_empty() else Color.WHITE
-
-	if ai_type == "boss":
-		# Larger boss visual
-		var poly := Polygon2D.new()
-		var pts := PackedVector2Array()
-		var sides := 8
-		var radius := 22.0
-		for i in range(sides):
-			var angle := TAU * float(i) / float(sides) - TAU / (sides * 2)
-			pts.append(Vector2(cos(angle), sin(angle)) * radius)
-		poly.polygon = pts
-		poly.color = col
-		add_child(poly)
-		# Inner ring
-		var inner := Polygon2D.new()
-		var inner_pts := PackedVector2Array()
-		for i in range(sides):
-			var angle := TAU * float(i) / float(sides)
-			inner_pts.append(Vector2(cos(angle), sin(angle)) * radius * 0.5)
-		inner.polygon = inner_pts
-		inner.color = Color(colors[1]) if colors.size() > 1 else Color.WHITE
-		add_child(inner)
-	elif elite:
-		var poly := Polygon2D.new()
-		var pts := PackedVector2Array()
-		var sides := 6
-		var radius := 16.0
-		for i in range(sides):
-			var angle := TAU * float(i) / float(sides) - TAU / (sides * 2)
-			pts.append(Vector2(cos(angle), sin(angle)) * radius)
-		poly.polygon = pts
-		poly.color = col
-		add_child(poly)
-	else:
+	var tex: Texture2D = ENEMY_TEXTURES.get(enemy_id, null)
+	if tex == null:
+		var colors: Array = config.get("colors", ["#ffffff"])
+		var col: Color = Color(colors[0]) if not colors.is_empty() else Color.WHITE
 		var poly := Polygon2D.new()
 		poly.polygon = PackedVector2Array([
 			Vector2(-12, -12),
@@ -123,6 +118,28 @@ func _add_visual(config: Dictionary) -> void:
 		])
 		poly.color = col
 		add_child(poly)
+		return
+
+	shadow_sprite = Polygon2D.new()
+	shadow_sprite.polygon = PackedVector2Array([
+		Vector2(-18, -8),
+		Vector2(18, -8),
+		Vector2(28, 6),
+		Vector2(-28, 6)
+	])
+	shadow_sprite.color = Color(0, 0, 0, 0.18)
+	shadow_sprite.position = Vector2(0, 21 if ai_type != "boss" else 34)
+	add_child(shadow_sprite)
+
+	visual_root = Node2D.new()
+	visual_root.position = ENEMY_VISUAL_OFFSET.get(enemy_id, Vector2.ZERO)
+	add_child(visual_root)
+
+	visual_sprite = Sprite2D.new()
+	visual_sprite.texture = tex
+	visual_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	visual_sprite.scale = ENEMY_VISUAL_SCALE.get(enemy_id, Vector2(0.1, 0.1))
+	visual_root.add_child(visual_sprite)
 
 func _add_collision() -> void:
 	var collision := CollisionShape2D.new()
@@ -153,34 +170,50 @@ func _physics_process(delta: float) -> void:
 			return
 
 	# Movement
-	var dir: Vector2 = (target.global_position - global_position).normalized()
+	var lead_strength := 0.12
+	if ai_type == "chase":
+		lead_strength = 0.2
+	elif ai_type == "explode":
+		lead_strength = 0.24
+	elif ai_type == "tank":
+		lead_strength = 0.08
+	elif ai_type == "boss":
+		lead_strength = 0.16
+	var predicted_target := target.global_position + target.velocity * lead_strength
+	var to_player: Vector2 = predicted_target - global_position
+	var dir: Vector2 = to_player.normalized()
+	var steering := _get_avoidance_vector() * 1.1
+	var player_pressure := 1.0 + minf(0.32, to_player.length() / 1400.0)
 	match ai_type:
 		"tank":
-			velocity = dir * move_speed * 0.8
+			velocity = (dir + steering * 0.7).normalized() * move_speed * 0.92 * player_pressure
 		"ranged":
 			var dist_to_player := global_position.distance_to(target.global_position)
 			if dist_to_player < 160.0:
 				# Move away from player
-				velocity = -dir * move_speed * 0.8
+				velocity = (-dir + steering * 0.55).normalized() * move_speed * 0.94
 			elif dist_to_player > 280.0:
-				velocity = dir * move_speed * 0.7
+				velocity = (dir + steering * 0.45).normalized() * move_speed * 0.86 * player_pressure
 			else:
-				velocity = dir * move_speed * 0.3
+				velocity = (dir + steering).normalized() * move_speed * 0.42
 			# Fire projectile
 			if special_timer <= 0.0 and dist_to_player < 400.0:
 				_fire_ranged_attack(dir)
 				special_timer = special_interval
 		"boss":
-			velocity = dir * move_speed * 0.7
+			velocity = (dir + steering * 0.35).normalized() * move_speed * 0.82 * player_pressure
 			if special_timer <= 0.0:
 				_boss_attack()
 				special_timer = special_interval
 		"explode":
-			velocity = dir * move_speed * 1.2
+			velocity = (dir + steering * 0.6).normalized() * move_speed * 1.34 * player_pressure
 		_:
-			velocity = dir * move_speed
+			velocity = (dir + steering).normalized() * move_speed * 1.08 * player_pressure
 
 	move_and_slide()
+	global_position.x = clampf(global_position.x, -MAP_HALF_SIZE.x, MAP_HALF_SIZE.x)
+	global_position.y = clampf(global_position.y, -MAP_HALF_SIZE.y, MAP_HALF_SIZE.y)
+	_update_visual_motion(delta)
 
 	# Contact damage
 	if not ai_type == "ranged":
@@ -205,9 +238,8 @@ func _prime_explode() -> void:
 	explode_primed = true
 	explode_countdown = 0.8
 	# Flash red
-	for child in get_children():
-		if child is Polygon2D:
-			child.color = Color.RED
+	if is_instance_valid(visual_sprite):
+		visual_sprite.modulate = Color(1.35, 0.45, 0.45, 1.0)
 	special_timer = 10.0
 
 func _detonate() -> void:
@@ -246,9 +278,14 @@ func _boss_attack() -> void:
 func take_damage(amount: int, _source_weapon_id: String = "") -> void:
 	hp -= amount
 	# Hit flash
-	modulate = Color.WHITE * 2.0
-	var t := create_tween()
-	t.tween_property(self, "modulate", Color.WHITE, 0.08)
+	if is_instance_valid(visual_sprite):
+		visual_sprite.modulate = Color(1.7, 1.7, 1.7, 1.0)
+		var sprite_tween := create_tween()
+		sprite_tween.tween_property(visual_sprite, "modulate", Color.WHITE, 0.1)
+	else:
+		modulate = Color.WHITE * 2.0
+		var t := create_tween()
+		t.tween_property(self, "modulate", Color.WHITE, 0.08)
 
 	# Boss phase check
 	if ai_type == "boss":
@@ -287,3 +324,40 @@ func _die() -> void:
 		target.register_kill()
 	enemy_dead.emit(enemy_id, elite, drop_exp, global_position)
 	queue_free()
+
+func _get_avoidance_vector() -> Vector2:
+	var root := get_parent()
+	if root == null:
+		return Vector2.ZERO
+	var repel := Vector2.ZERO
+	for other in root.get_children():
+		if other == self or not is_instance_valid(other):
+			continue
+		var offset := global_position - other.global_position
+		var distance := offset.length()
+		if distance < 0.001 or distance > avoidance_radius:
+			continue
+		var weight := (avoidance_radius - distance) / avoidance_radius
+		repel += offset.normalized() * weight
+	return repel
+
+func _update_visual_motion(delta: float) -> void:
+	if not is_instance_valid(visual_root) or not is_instance_valid(visual_sprite):
+		return
+	var speed_ratio := clampf(velocity.length() / maxf(move_speed, 1.0), 0.0, 1.25)
+	visual_time += delta * lerpf(2.4, 7.6, speed_ratio)
+	var stride := absf(sin(visual_time))
+	var squash := sin(visual_time * 0.5)
+	var base_scale: Vector2 = ENEMY_VISUAL_SCALE.get(enemy_id, Vector2(0.1, 0.1))
+	var animated_scale := Vector2(
+		base_scale.x * (1.0 + 0.05 * speed_ratio - stride * 0.025),
+		base_scale.y * (1.0 - 0.035 * speed_ratio + stride * 0.05)
+	)
+	visual_sprite.scale = visual_sprite.scale.lerp(animated_scale, minf(1.0, delta * 10.0))
+	var base_offset: Vector2 = ENEMY_VISUAL_OFFSET.get(enemy_id, Vector2.ZERO)
+	var vertical_bob := stride * (4.0 if ai_type == "boss" else 2.0) + maxf(0.0, squash) * 0.8
+	visual_root.position = visual_root.position.lerp(base_offset + Vector2(0, -vertical_bob), minf(1.0, delta * 9.0))
+	if velocity.x > 10.0:
+		visual_sprite.flip_h = false
+	elif velocity.x < -10.0:
+		visual_sprite.flip_h = true

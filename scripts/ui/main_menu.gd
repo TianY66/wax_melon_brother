@@ -9,6 +9,8 @@ var settings_panel: Control
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	GameState.set_state(GameState.State.MAIN_MENU)
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	size = get_viewport_rect().size
 	theme = UI_THEME.get_default_theme()
 	_build_ui()
 
@@ -149,6 +151,7 @@ func _build_settings_panel() -> Control:
 	sfx_slider.custom_minimum_size = Vector2(260, 0)
 	sfx_slider.value_changed.connect(func(v: float):
 		SaveService.settings["sfx_volume"] = v
+		SaveService.apply_settings()
 	)
 	vbox.add_child(sfx_slider)
 

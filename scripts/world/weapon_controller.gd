@@ -1,6 +1,7 @@
 extends Node
 
 const PROJECTILE_SCENE := preload("res://scenes/world/Projectile.tscn")
+const COMPANION_TEXTURE := preload("res://imgs/05_武器/武器_小瓜无人机.png")
 
 var owner_player: Node
 var owned_weapons: Array = []
@@ -275,11 +276,22 @@ func _create_companion_node(weapon_id: String, config: Dictionary) -> Node:
 	drone.set_meta("owner_player", owner_player)
 	drone.set_meta("controller", self)
 
-	var poly := Polygon2D.new()
-	poly.polygon = PackedVector2Array([Vector2(-10, -10), Vector2(10, -10), Vector2(10, 10), Vector2(-10, 10)])
-	var colors: Array = config.get("colors", ["#ffffff"])
-	poly.color = Color(colors[0]) if not colors.is_empty() else Color.WHITE
-	drone.add_child(poly)
+	var shadow := Polygon2D.new()
+	shadow.polygon = PackedVector2Array([
+		Vector2(-16, -6),
+		Vector2(16, -6),
+		Vector2(24, 6),
+		Vector2(-24, 6)
+	])
+	shadow.color = Color(0, 0, 0, 0.16)
+	shadow.position = Vector2(0, 18)
+	drone.add_child(shadow)
+
+	var sprite := Sprite2D.new()
+	sprite.texture = COMPANION_TEXTURE
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	sprite.scale = Vector2(0.084, 0.084)
+	drone.add_child(sprite)
 
 	var collision := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
@@ -347,22 +359,40 @@ func _spawn_area_fx(position: Vector2, radius: float, config: Dictionary) -> voi
 	if not container:
 		return
 	var fx := Area2D.new()
-	var poly := Polygon2D.new()
-	var points := PackedVector2Array()
-	var segments: int = 12
-	for i in range(segments):
-		var angle: float = TAU * float(i) / float(segments)
-		points.append(Vector2(cos(angle), sin(angle)) * radius)
-	poly.polygon = points
-	var colors: Array = config.get("colors", ["#ffff00"])
-	poly.color = Color(colors[0]) if not colors.is_empty() else Color.YELLOW
-	poly.color.a = 0.35
-	fx.add_child(poly)
+	var sprite := Sprite2D.new()
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	sprite.scale = Vector2((radius / 160.0) * 0.26, (radius / 160.0) * 0.26)
+	var tex: Texture2D = null
+	var weapon_type := String(config.get("type", ""))
+	if weapon_type == "area_random":
+		tex = preload("res://imgs/06_特效/特效_电磁蒸笼.png")
+	elif String(config.get("name", "")) == "菜刀回旋盘":
+		tex = preload("res://imgs/06_特效/特效_菜刀回旋盘.png")
+	if tex != null:
+		sprite.texture = tex
+		sprite.modulate = Color(1, 1, 1, 0.88)
+		fx.add_child(sprite)
+	else:
+		var poly := Polygon2D.new()
+		var points := PackedVector2Array()
+		var segments: int = 12
+		for i in range(segments):
+			var angle: float = TAU * float(i) / float(segments)
+			points.append(Vector2(cos(angle), sin(angle)) * radius)
+		poly.polygon = points
+		var colors: Array = config.get("colors", ["#ffff00"])
+		poly.color = Color(colors[0]) if not colors.is_empty() else Color.YELLOW
+		poly.color.a = 0.35
+		fx.add_child(poly)
 	fx.global_position = position
 	container.add_child(fx)
 	# Fade out and remove
 	var tween: Tween = create_tween()
-	tween.tween_property(poly, "color:a", 0.0, 0.5)
+	if sprite.texture != null:
+		tween.tween_property(sprite, "modulate:a", 0.0, 0.42)
+	else:
+		var poly_node := fx.get_child(0)
+		tween.tween_property(poly_node, "color:a", 0.0, 0.5)
 	tween.tween_callback(fx.queue_free)
 
 # ---- Target finding ----

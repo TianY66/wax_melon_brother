@@ -3,9 +3,10 @@ extends CharacterBody2D
 signal player_died
 signal request_level_up
 
-const PLAYER_TEXTURE := preload("res://imgs/new_wax.png")
-const BASE_VISUAL_SCALE := Vector2(0.085, 0.081)
-const BASE_VISUAL_OFFSET := Vector2(0, -6)
+const PLAYER_TEXTURE := preload("res://imgs/01_角色/角色_冬瓜大哥.png")
+const BASE_VISUAL_SCALE := Vector2(0.102, 0.102)
+const BASE_VISUAL_OFFSET := Vector2(0, -12)
+const MAP_HALF_SIZE := Vector2(1135.0, 635.0)
 
 @export var base_move_speed := 220.0
 @export var max_hp := 100
@@ -25,6 +26,7 @@ var visual_time := 0.0
 var weapon_controller: Node
 var visual_root: Node2D
 var visual_sprite: Sprite2D
+var shadow_sprite: Polygon2D
 
 func _ready() -> void:
 	_ensure_default_input_actions()
@@ -37,6 +39,17 @@ func _ready() -> void:
 	_add_camera()
 
 func _add_visual() -> void:
+	shadow_sprite = Polygon2D.new()
+	shadow_sprite.polygon = PackedVector2Array([
+		Vector2(-22, -8),
+		Vector2(22, -8),
+		Vector2(30, 8),
+		Vector2(-30, 8)
+	])
+	shadow_sprite.color = Color(0, 0, 0, 0.2)
+	shadow_sprite.position = Vector2(0, 18)
+	add_child(shadow_sprite)
+
 	visual_root = Node2D.new()
 	visual_root.position = BASE_VISUAL_OFFSET
 	visual_root.scale = BASE_VISUAL_SCALE
@@ -46,6 +59,7 @@ func _add_visual() -> void:
 	visual_sprite = Sprite2D.new()
 	visual_sprite.texture = PLAYER_TEXTURE
 	visual_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	visual_sprite.centered = true
 	visual_root.add_child(visual_sprite)
 
 func _add_collision() -> void:
@@ -107,6 +121,8 @@ func _handle_move() -> void:
 	_update_facing(input_dir)
 	velocity = input_dir * base_move_speed
 	move_and_slide()
+	global_position.x = clampf(global_position.x, -MAP_HALF_SIZE.x, MAP_HALF_SIZE.x)
+	global_position.y = clampf(global_position.y, -MAP_HALF_SIZE.y, MAP_HALF_SIZE.y)
 
 func _update_facing(input_dir: Vector2) -> void:
 	if not is_instance_valid(visual_sprite):

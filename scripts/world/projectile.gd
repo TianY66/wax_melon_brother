@@ -1,5 +1,31 @@
 extends Area2D
 
+const PROJECTILE_TEXTURES := {
+	"winter_seed_burst": preload("res://imgs/06_特效/特效_冬瓜籽连发.png"),
+	"knife_disc": preload("res://imgs/05_武器/武器_菜刀回旋盘.png"),
+	"hot_soup_sprayer": preload("res://imgs/06_特效/特效_热汤喷壶.png"),
+	"electro_steamer": preload("res://imgs/06_特效/特效_电磁蒸笼.png"),
+	"cling_wrap_laser": preload("res://imgs/06_特效/特效_保鲜膜激光.png"),
+	"little_winter_drone": preload("res://imgs/06_特效/特效_小瓜无人机.png")
+}
+const PROJECTILE_BASE_SCALE := {
+	"winter_seed_burst": Vector2(0.062, 0.062),
+	"knife_disc": Vector2(0.066, 0.066),
+	"hot_soup_sprayer": Vector2(0.07, 0.07),
+	"electro_steamer": Vector2(0.1, 0.1),
+	"cling_wrap_laser": Vector2(0.094, 0.094),
+	"little_winter_drone": Vector2(0.07, 0.07),
+	"enemy_bullet": Vector2(0.026, 0.026),
+	"boss_bullet": Vector2(0.036, 0.036)
+}
+const PROJECTILE_REGIONS := {
+	"winter_seed_burst": Rect2(64, 0, 101, 1024),
+	"hot_soup_sprayer": Rect2(504, 0, 89, 1024),
+	"electro_steamer": Rect2(329, 0, 178, 1024),
+	"cling_wrap_laser": Rect2(64, 0, 475, 1024),
+	"little_winter_drone": Rect2(575, 0, 147, 1024)
+}
+
 var damage := 10
 var speed := 700.0
 var direction := Vector2.RIGHT
@@ -9,6 +35,7 @@ var owner_weapon_id := ""
 var owner_body: Node = null
 var target_body: Node = null
 var is_critical := false
+var visual_sprite: Sprite2D
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
@@ -30,6 +57,23 @@ func set_target(target: Node) -> void:
 	target_body = target
 
 func _add_visual() -> void:
+	var tex: Texture2D = PROJECTILE_TEXTURES.get(owner_weapon_id, null)
+	if tex != null:
+		visual_sprite = Sprite2D.new()
+		visual_sprite.texture = _build_projectile_texture(owner_weapon_id, tex)
+		visual_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		visual_sprite.scale = PROJECTILE_BASE_SCALE.get(owner_weapon_id, Vector2(0.06, 0.06))
+		visual_sprite.rotation = direction.angle()
+		if owner_weapon_id == "knife_disc":
+			visual_sprite.rotation += PI * 0.25
+		elif owner_weapon_id == "cling_wrap_laser":
+			visual_sprite.scale = Vector2(0.11, 0.095)
+		add_child(visual_sprite)
+
+		if is_critical:
+			visual_sprite.modulate = Color(1.0, 0.92, 0.42, 1.0)
+		return
+
 	var poly := Polygon2D.new()
 	var col := _get_projectile_color()
 
@@ -118,6 +162,10 @@ func _add_collision() -> void:
 
 func _physics_process(delta: float) -> void:
 	global_position += direction * speed * delta
+	if is_instance_valid(visual_sprite):
+		visual_sprite.rotation = direction.angle()
+		if owner_weapon_id == "knife_disc":
+			visual_sprite.rotation += delta * 10.0
 	_check_direct_player_hit()
 	lifetime -= delta
 	if lifetime <= 0.0:
@@ -160,3 +208,11 @@ func _check_direct_player_hit() -> void:
 	if global_position.distance_to(player.global_position) <= hit_radius:
 		player.take_damage(damage, owner_weapon_id)
 		_despawn()
+
+func _build_projectile_texture(weapon_id: String, tex: Texture2D) -> Texture2D:
+	if not PROJECTILE_REGIONS.has(weapon_id):
+		return tex
+	var atlas := AtlasTexture.new()
+	atlas.atlas = tex
+	atlas.region = PROJECTILE_REGIONS[weapon_id]
+	return atlas

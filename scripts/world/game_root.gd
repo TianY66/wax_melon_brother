@@ -9,6 +9,9 @@ const HUD_SCENE := preload("res://scenes/ui/HUD.tscn")
 const LEVELUP_SCENE := preload("res://scenes/ui/LevelUpPanel.tscn")
 const RESULT_SCENE := preload("res://scenes/ui/ResultPanel.tscn")
 const UI_THEME := preload("res://scripts/ui/ui_theme.gd")
+const MAP_HALF_SIZE := Vector2(1180.0, 680.0)
+const SAFE_SPAWN_DISTANCE := 140.0
+const ENEMY_SEPARATION_RADIUS := 120.0
 
 var player: Node
 var hud: Control
@@ -34,6 +37,7 @@ var drop_pool: Array = []
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	GameState.set_state(GameState.State.IN_GAME)
+	_build_arena()
 	player = PLAYER_SCENE.instantiate()
 	add_child(player)
 	player.global_position = Vector2.ZERO
@@ -98,9 +102,9 @@ func _spawn_wave_enemy() -> void:
 	if pool.is_empty():
 		return
 	var difficulty_step := _get_difficulty_step()
-	var max_alive := int(wave.get("max_alive", 20)) + difficulty_step * 2
+	var max_alive := int(wave.get("max_alive", 20)) + difficulty_step
 	if enemy_container.get_child_count() >= max_alive:
-		spawn_timer = 0.35
+		spawn_timer = 0.45
 		return
 
 	var rng := RandomNumberGenerator.new()
@@ -148,10 +152,67 @@ func _get_difficulty_step() -> int:
 func _pick_spawn_position(force_far: bool = false) -> Vector2:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	var radius: float = 360.0 if force_far else 280.0
-	var angle := rng.randf_range(0.0, TAU)
-	var offset := Vector2(cos(angle), sin(angle)) * radius
-	return player.global_position + offset
+	var min_radius: float = 560.0 if force_far else 420.0
+	var max_radius: float = 860.0 if force_far else 760.0
+	var best_position := player.global_position
+	var best_score := -INF
+	for _i in range(12):
+		var angle := rng.randf_range(0.0, TAU)
+		var radius := rng.randf_range(min_radius, max_radius)
+		var offset := Vector2(cos(angle), sin(angle)) * radius
+		var candidate := player.global_position + offset
+		candidate.x = clampf(candidate.x, -MAP_HALF_SIZE.x + 72.0, MAP_HALF_SIZE.x - 72.0)
+		candidate.y = clampf(candidate.y, -MAP_HALF_SIZE.y + 72.0, MAP_HALF_SIZE.y - 72.0)
+		var player_distance := candidate.distance_to(player.global_position)
+		if player_distance < SAFE_SPAWN_DISTANCE:
+			continue
+		var score := player_distance + _distance_to_nearest_enemy(candidate) * 1.35
+		if score > best_score:
+			best_score = score
+			best_position = candidate
+	return best_position
+
+func _distance_to_nearest_enemy(position: Vector2) -> float:
+	var best := INF
+	for enemy in enemy_container.get_children():
+		if not is_instance_valid(enemy):
+			continue
+		best = minf(best, position.distance_to(enemy.global_position))
+	return ENEMY_SEPARATION_RADIUS if best == INF else best
+
+func _build_arena() -> void:
+	var floor := ColorRect.new()
+	floor.name = "ArenaFloor"
+	floor.color = Color(0.13, 0.12, 0.1, 1.0)
+	floor.position = -MAP_HALF_SIZE
+	floor.size = MAP_HALF_SIZE * 2.0
+	add_child(floor)
+	floor.z_index = -20
+
+	var grid := Polygon2D.new()
+	grid.name = "ArenaInset"
+	grid.polygon = PackedVector2Array([
+		Vector2(-MAP_HALF_SIZE.x + 90.0, -MAP_HALF_SIZE.y + 90.0),
+		Vector2(MAP_HALF_SIZE.x - 90.0, -MAP_HALF_SIZE.y + 90.0),
+		Vector2(MAP_HALF_SIZE.x - 90.0, MAP_HALF_SIZE.y - 90.0),
+		Vector2(-MAP_HALF_SIZE.x + 90.0, MAP_HALF_SIZE.y - 90.0)
+	])
+	grid.color = Color(0.16, 0.16, 0.13, 0.45)
+	add_child(grid)
+	grid.z_index = -19
+
+	var border := Line2D.new()
+	border.name = "ArenaBorder"
+	border.default_color = Color(0.53, 0.62, 0.39, 0.95)
+	border.width = 10.0
+	border.closed = true
+	border.antialiased = true
+	border.add_point(Vector2(-MAP_HALF_SIZE.x, -MAP_HALF_SIZE.y))
+	border.add_point(Vector2(MAP_HALF_SIZE.x, -MAP_HALF_SIZE.y))
+	border.add_point(Vector2(MAP_HALF_SIZE.x, MAP_HALF_SIZE.y))
+	border.add_point(Vector2(-MAP_HALF_SIZE.x, MAP_HALF_SIZE.y))
+	add_child(border)
+	border.z_index = -18
 
 func _on_enemy_dead(enemy_id_str: String, is_elite: bool, drop_exp_val: int, drop_position: Vector2) -> void:
 	var rng := RandomNumberGenerator.new()
