@@ -1,0 +1,34 @@
+{
+  "winter_melon_brother_1": {
+    "id": "winter_melon_brother_1",
+    "sort_order": 1,
+    "name": "冬瓜大哥",
+    "description": "稳健拾取流，适合稳定开局。",
+    "texture_path": "res://imgs/01_角色/角色_冬瓜大哥.png",
+    "visual_scale": [0.102, 0.102],
+    "visual_offset": [0, -12],
+    "base_move_speed": 215,
+    "max_hp": 110,
+    "pickup_radius": 78,
+    "damage_bonus_pct": 0.0,
+    "cooldown_reduction_pct": 0.0,
+    "crit_rate": 0.0,
+    "starting_weapon_id": "winter_seed_burst"
+  },
+  "winter_melon_brother_2": {
+    "id": "winter_melon_brother_2",
+    "sort_order": 2,
+    "name": "冬瓜二哥",
+    "description": "机动暴击流，走位更快更狠。",
+    "texture_path": "res://imgs/01_角色/角色_冬瓜二哥_透明背景_1024.png",
+    "visual_scale": [0.083, 0.083],
+    "visual_offset": [0, -12],
+    "base_move_speed": 250,
+    "max_hp": 82,
+    "pickup_radius": 62,
+    "damage_bonus_pct": 0.05,
+    "cooldown_reduction_pct": 0.0,
+    "crit_rate": 0.1,
+    "starting_weapon_id": "knife_disc"
+  }
+}

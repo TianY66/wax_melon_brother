@@ -1,33 +1,33 @@
-# 冬瓜兄弟设计文档索引
+# 冬瓜兄弟文档索引
 
-本文档集基于 [game.md](/E:/wax_gourd_brother/game.md) 的“两周可落地肉鸽生存类游戏”思路整理，目标是在不失控扩张的前提下，为《冬瓜兄弟》建立一套可以直接进入开发的项目资料。
+当前版本：`v0.2.0 Character + Shop`
+
+## 当前版本能力
+
+- 2 个可玩角色：冬瓜大哥、冬瓜二哥
+- 6 段波次：前 5 段结束进入波间商店
+- 双资源循环：经验只负责升级，材料只负责消费
+- 波间商店：3 个商品、每店 1 次刷新、刷新价格 8
+- 终局节奏：`540s` 预警、`570s` Boss、`600s` 结算
 
 ## 文档列表
 
-1. [项目简介与可行性分析](/E:/wax_gourd_brother/docs/01-project-overview-feasibility.md)
-2. [产品需求文档](/E:/wax_gourd_brother/docs/02-prd.md)
-3. [故事列表](/E:/wax_gourd_brother/docs/03-story-list.md)
-4. [第一次迭代故事与需求说明](/E:/wax_gourd_brother/docs/04-iteration-1.md)
-5. [用例图与用例说明](/E:/wax_gourd_brother/docs/05-use-cases.md)
-6. [概要设计](/E:/wax_gourd_brother/docs/06-high-level-design.md)
-7. [详细设计](/E:/wax_gourd_brother/docs/07-detailed-design.md)
-8. [对象和行为列表](/E:/wax_gourd_brother/docs/08-object-behavior-list.md)
-9. [测试文档](/E:/wax_gourd_brother/docs/09-test-plan.md)
-10. [部署说明与项目总结](/E:/wax_gourd_brother/docs/10-deployment-and-summary.md)
+1. [项目简介与可行性分析](./01-project-overview-feasibility.md)
+2. [产品需求文档](./02-prd.md)
+3. [故事列表](./03-story-list.md)
+4. [第一次迭代故事与需求说明](./04-iteration-1.md)
+5. [用例图与用例说明](./05-use-cases.md)
+6. [概要设计](./06-high-level-design.md)
+7. [详细设计](./07-detailed-design.md)
+8. [对象和行为列表](./08-object-behavior-list.md)
+9. [测试计划](./09-test-plan.md)
+10. [部署说明与项目总结](./10-deployment-and-summary.md)
+11. [第二次迭代：双角色 + 商店](./11-iteration-2.md)
+12. [需求汇总](./require2.md)
 
-## 统一设计前提
+## 阅读建议
 
-- 游戏类型：单人俯视角肉鸽生存类
-- 游戏名称：冬瓜兄弟
-- 主题风格：轻喜剧“后厨灾变”世界观
-- 核心体验：移动走位、自动攻击、即时升级、局内构筑、10 分钟生存
-- 目标平台：Windows PC
-- 推荐引擎：Godot 4.3
-- 开发目标：2 周内完成可演示 MVP
-- 内容边界：1 张地图、1 名可玩角色、4~6 种武器、5 类普通敌人、2 类精英敌人、1 个 Boss
-
-## 文档使用建议
-
-- 立项时先看“项目简介”“PRD”“第一次迭代说明”
-- 开发时重点看“概要设计”“详细设计”“对象和行为列表”
-- 测试和打包阶段看“测试文档”“部署说明”
+- 想看当前范围：先看 `02-prd`、`11-iteration-2`、`require2`
+- 想看系统设计：重点看 `06-high-level-design`、`07-detailed-design`、`08-object-behavior-list`
+- 想看验证口径：重点看 `09-test-plan`
+- 想了解 MVP 历史背景：看 `01-project-overview-feasibility`、`04-iteration-1`

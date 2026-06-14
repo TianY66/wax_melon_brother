@@ -47,14 +47,15 @@ var target: Node = null
 var contact_cd := 0.0
 var difficulty_step := 0
 
-# Special behavior timers
 var special_timer := 0.0
 var special_interval := 2.5
 var explode_primed := false
 var explode_countdown := 0.0
 var boss_phase := 0
-var avoidance_radius := 58.0
+var avoidance_radius := 76.0
 var visual_time := 0.0
+var flank_sign := 1.0
+var aggression_bias := 1.0
 
 var visual_root: Node2D
 var visual_sprite: Sprite2D
@@ -83,6 +84,8 @@ func setup(id: String) -> void:
 		special_interval = 0.6
 	elif ai_type == "explode":
 		special_interval = 0.35
+	flank_sign = -1.0 if randf() < 0.5 else 1.0
+	aggression_bias = randf_range(0.92, 1.18)
 	_add_visual(config)
 	_add_collision()
 
@@ -169,7 +172,6 @@ func _physics_process(delta: float) -> void:
 			_prime_explode()
 			return
 
-	# Movement
 	var lead_strength := 0.12
 	if ai_type == "chase":
 		lead_strength = 0.2
@@ -179,44 +181,43 @@ func _physics_process(delta: float) -> void:
 		lead_strength = 0.08
 	elif ai_type == "boss":
 		lead_strength = 0.16
-	var predicted_target := target.global_position + target.velocity * lead_strength
+	var predicted_target: Vector2 = target.global_position + target.velocity * lead_strength
 	var to_player: Vector2 = predicted_target - global_position
 	var dir: Vector2 = to_player.normalized()
-	var steering := _get_avoidance_vector() * 1.1
+	var steering := _get_avoidance_vector() * 1.25
+	var flank := _get_flank_vector(dir, to_player.length())
 	var player_pressure := 1.0 + minf(0.32, to_player.length() / 1400.0)
+
 	match ai_type:
 		"tank":
-			velocity = (dir + steering * 0.7).normalized() * move_speed * 0.92 * player_pressure
+			velocity = (dir + steering * 0.7 + flank * 0.18).normalized() * move_speed * 0.92 * player_pressure * aggression_bias
 		"ranged":
 			var dist_to_player := global_position.distance_to(target.global_position)
 			if dist_to_player < 160.0:
-				# Move away from player
 				velocity = (-dir + steering * 0.55).normalized() * move_speed * 0.94
 			elif dist_to_player > 280.0:
 				velocity = (dir + steering * 0.45).normalized() * move_speed * 0.86 * player_pressure
 			else:
 				velocity = (dir + steering).normalized() * move_speed * 0.42
-			# Fire projectile
 			if special_timer <= 0.0 and dist_to_player < 400.0:
 				_fire_ranged_attack(dir)
 				special_timer = special_interval
 		"boss":
-			velocity = (dir + steering * 0.35).normalized() * move_speed * 0.82 * player_pressure
+			velocity = (dir + steering * 0.35 + flank * 0.15).normalized() * move_speed * 0.82 * player_pressure
 			if special_timer <= 0.0:
 				_boss_attack()
 				special_timer = special_interval
 		"explode":
-			velocity = (dir + steering * 0.6).normalized() * move_speed * 1.34 * player_pressure
+			velocity = (dir + steering * 0.6 + flank * 0.25).normalized() * move_speed * 1.34 * player_pressure * aggression_bias
 		_:
-			velocity = (dir + steering).normalized() * move_speed * 1.08 * player_pressure
+			velocity = (dir + steering + flank * 0.22).normalized() * move_speed * 1.12 * player_pressure * aggression_bias
 
 	move_and_slide()
 	global_position.x = clampf(global_position.x, -MAP_HALF_SIZE.x, MAP_HALF_SIZE.x)
 	global_position.y = clampf(global_position.y, -MAP_HALF_SIZE.y, MAP_HALF_SIZE.y)
 	_update_visual_motion(delta)
 
-	# Contact damage
-	if not ai_type == "ranged":
+	if ai_type != "ranged":
 		if global_position.distance_to(target.global_position) < 22.0 and contact_cd <= 0.0:
 			target.take_damage(damage)
 			contact_cd = contact_interval
@@ -237,22 +238,11 @@ func _fire_ranged_attack(direction: Vector2) -> void:
 func _prime_explode() -> void:
 	explode_primed = true
 	explode_countdown = 0.8
-	# Flash red
 	if is_instance_valid(visual_sprite):
 		visual_sprite.modulate = Color(1.35, 0.45, 0.45, 1.0)
 	special_timer = 10.0
 
 func _detonate() -> void:
-	var root := get_parent()
-	if root and root.has_node("EnemyContainer"):
-		var enemies := root.get_node("EnemyContainer").get_children()
-		for enemy in enemies:
-			if enemy == self or not is_instance_valid(enemy):
-				continue
-			if global_position.distance_to(enemy.global_position) < 60.0:
-				# Don't damage other enemies in MVP
-				pass
-	# Damage player if close
 	if is_instance_valid(target) and global_position.distance_to(target.global_position) < 60.0:
 		target.take_damage(damage * 2)
 	_die()
@@ -277,7 +267,6 @@ func _boss_attack() -> void:
 
 func take_damage(amount: int, _source_weapon_id: String = "") -> void:
 	hp -= amount
-	# Hit flash
 	if is_instance_valid(visual_sprite):
 		visual_sprite.modulate = Color(1.7, 1.7, 1.7, 1.0)
 		var sprite_tween := create_tween()
@@ -287,7 +276,6 @@ func take_damage(amount: int, _source_weapon_id: String = "") -> void:
 		var t := create_tween()
 		t.tween_property(self, "modulate", Color.WHITE, 0.08)
 
-	# Boss phase check
 	if ai_type == "boss":
 		var hp_ratio := float(hp) / float(max_hp)
 		if hp_ratio <= 0.3 and boss_phase < 3:
@@ -333,13 +321,19 @@ func _get_avoidance_vector() -> Vector2:
 	for other in root.get_children():
 		if other == self or not is_instance_valid(other):
 			continue
-		var offset := global_position - other.global_position
-		var distance := offset.length()
+		var offset: Vector2 = global_position - other.global_position
+		var distance: float = offset.length()
 		if distance < 0.001 or distance > avoidance_radius:
 			continue
-		var weight := (avoidance_radius - distance) / avoidance_radius
+		var weight: float = (avoidance_radius - distance) / avoidance_radius
 		repel += offset.normalized() * weight
 	return repel
+
+func _get_flank_vector(dir: Vector2, distance_to_target: float) -> Vector2:
+	if distance_to_target > 320.0:
+		return Vector2.ZERO
+	var intensity := clampf((320.0 - distance_to_target) / 220.0, 0.0, 1.0)
+	return Vector2(-dir.y, dir.x) * flank_sign * intensity
 
 func _update_visual_motion(delta: float) -> void:
 	if not is_instance_valid(visual_root) or not is_instance_valid(visual_sprite):

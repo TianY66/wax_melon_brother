@@ -6,7 +6,8 @@
     "target": "knife_disc",
     "description": "获得新武器：菜刀回旋盘",
     "weight": 100,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 36
   },
   {
     "id": "unlock_hot_soup",
@@ -15,7 +16,8 @@
     "target": "hot_soup_sprayer",
     "description": "获得新武器：热汤喷壶",
     "weight": 90,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 36
   },
   {
     "id": "unlock_electro_steamer",
@@ -24,7 +26,8 @@
     "target": "electro_steamer",
     "description": "获得新武器：电磁蒸笼",
     "weight": 80,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 36
   },
   {
     "id": "unlock_cling_laser",
@@ -33,7 +36,8 @@
     "target": "cling_wrap_laser",
     "description": "获得新武器：保鲜膜激光",
     "weight": 70,
-    "tier": 2
+    "tier": 2,
+    "shop_price": 52
   },
   {
     "id": "unlock_little_drone",
@@ -42,7 +46,8 @@
     "target": "little_winter_drone",
     "description": "获得新武器：小瓜无人机",
     "weight": 75,
-    "tier": 2
+    "tier": 2,
+    "shop_price": 52
   },
   {
     "id": "global_move_speed",
@@ -52,7 +57,8 @@
     "value": 0.08,
     "description": "移动速度提升 8%",
     "weight": 100,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 26
   },
   {
     "id": "global_pickup_radius",
@@ -62,7 +68,8 @@
     "value": 0.12,
     "description": "拾取半径提升 12%",
     "weight": 100,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 26
   },
   {
     "id": "global_hp",
@@ -72,7 +79,8 @@
     "value": 12,
     "description": "最大生命 +12",
     "weight": 95,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 28
   },
   {
     "id": "global_cdr",
@@ -82,7 +90,8 @@
     "value": 0.08,
     "description": "武器冷却缩减 8%",
     "weight": 90,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 30
   },
   {
     "id": "global_crit",
@@ -92,7 +101,8 @@
     "value": 0.05,
     "description": "暴击率 +5%",
     "weight": 75,
-    "tier": 2
+    "tier": 2,
+    "shop_price": 44
   },
   {
     "id": "global_damage",
@@ -102,7 +112,8 @@
     "value": 0.1,
     "description": "全局伤害 +10%",
     "weight": 95,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 30
   },
   {
     "id": "weapon_damage",
@@ -113,7 +124,8 @@
     "value": 0.15,
     "description": "当前武器伤害提升 15%",
     "weight": 100,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 32
   },
   {
     "id": "weapon_cooldown",
@@ -124,7 +136,8 @@
     "value": 0.12,
     "description": "当前武器冷却缩短 12%",
     "weight": 95,
-    "tier": 1
+    "tier": 1,
+    "shop_price": 34
   },
   {
     "id": "weapon_projectile",
@@ -135,7 +148,7 @@
     "value": 1,
     "description": "当前武器投射物数量 +1",
     "weight": 70,
-    "tier": 2
+    "tier": 2,
+    "shop_price": 48
   }
 ]
-

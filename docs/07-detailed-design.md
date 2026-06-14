@@ -1,348 +1,205 @@
 # 冬瓜兄弟：详细设计
 
-## 1. 详细设计目标
+## 1. 设计目标
 
-本设计面向实际开发，定义主要模块的内部职责、关键数据结构、核心算法和事件流，确保实现时可以直接照此拆分代码与资源。
+本文档定义当前版本关键模块的结构、字段、流程与规则，重点覆盖双角色、材料经济、6 段波次和商店逻辑。
 
-## 2. 玩家模块设计
+## 2. 角色配置设计
 
-### 2.1 主要职责
-- 读取输入并移动
-- 管理生命、速度、拾取范围等属性
-- 接收伤害与死亡
-- 接收升级后的全局加成
+### 2.1 CharacterConfig 结构
 
-### 2.2 核心属性
+```json
+{
+  "id": "winter_melon_brother_2",
+  "name": "冬瓜二哥",
+  "description": "机动暴击流，走位更快更狠。",
+  "texture_path": "res://imgs/01_角色/角色_冬瓜二哥.png",
+  "visual_scale": [0.083, 0.083],
+  "visual_offset": [0, -12],
+  "base_move_speed": 250,
+  "max_hp": 82,
+  "pickup_radius": 62,
+  "damage_bonus_pct": 0.05,
+  "cooldown_reduction_pct": 0.0,
+  "crit_rate": 0.1,
+  "starting_weapon_id": "knife_disc"
+}
+```
+
+### 2.2 当前角色原型
+
+| 角色 | max_hp | move_speed | pickup_radius | crit_rate | damage_bonus_pct | starting_weapon_id |
+|---|---:|---:|---:|---:|---:|---|
+| 冬瓜大哥 | 110 | 215 | 78 | 0.00 | 0.00 | winter_seed_burst |
+| 冬瓜二哥 | 82 | 250 | 62 | 0.10 | 0.05 | knife_disc |
+
+## 3. Player 运行时设计
+
+### 3.1 核心字段
+
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| current_hp | int | 当前生命值 |
-| max_hp | int | 最大生命值 |
-| move_speed | float | 基础移动速度 |
+| character_id | String | 当前角色 ID |
+| current_hp | int | 当前生命 |
+| max_hp | int | 最大生命 |
+| base_move_speed | float | 基础移速 |
 | pickup_radius | float | 拾取半径 |
-| damage_bonus_pct | float | 攻击增伤比例 |
+| damage_bonus_pct | float | 全局增伤 |
 | cooldown_reduction_pct | float | 冷却缩减 |
 | crit_rate | float | 暴击率 |
-| hit_invincible_time | float | 受击无敌时间 |
+| exp | int | 当前经验槽 |
+| level | int | 当前等级 |
+| pending_level_ups | int | 待处理升级次数 |
+| materials | int | 当前材料余额 |
+| starting_weapon_id | String | 初始武器 |
 
-### 2.3 行为流程
-1. 输入系统读取方向
-2. 归一化向量，乘以最终移动速度
-3. 碰撞检测并更新位置
-4. 检查是否进入掉落物拾取范围
-5. 受击时进入短暂无敌
-6. 生命归零时广播 `player_dead`
+### 3.2 升级处理规则
 
-### 2.4 最终属性计算
-建议统一使用最终值计算，避免多个系统到处临时修改。
+1. `add_exp` 累加经验
+2. 若超过阈值，循环结算多个等级
+3. 每升 1 级，`pending_level_ups += 1`
+4. 升级面板每选 1 次，`pending_level_ups -= 1`
+5. 若仍有待处理升级，则继续弹出升级面板
 
-```text
-final_move_speed = base_move_speed * (1 + move_speed_bonus_pct)
-final_damage = base_damage * (1 + damage_bonus_pct) + flat_damage_bonus
-final_cooldown = max(0.2, base_cooldown * (1 - cooldown_reduction_pct))
-```
+## 4. WeaponController 设计
 
-## 3. 武器模块设计
+### 4.1 初始化规则
 
-## 3.1 武器基础模型
-每把武器分为两层：
+- `WeaponController.setup(player, starting_weapon_id)`
+- 若传入角色初始武器，则使用角色武器开局
+- 不再写死默认武器
 
-- `WeaponConfig`：静态配置，描述数值和行为类型
-- `WeaponRuntime`：运行时实例，描述等级、冷却和当前状态
+### 4.2 升级候选类型
 
-### 3.2 武器配置建议
+- `unlock_weapon`
+- `weapon_upgrade`
+- `global`
+
+## 5. 敌人与材料设计
+
+### 5.1 敌人配置扩展
+
+每个敌人新增：
+
 ```json
-{
-  "id": "winter_seed_burst",
-  "name": "冬瓜籽连发",
-  "type": "projectile",
-  "cooldown": 1.2,
-  "damage": 10,
-  "projectile_count": 1,
-  "speed": 700,
-  "range": 420,
-  "pierce": 0,
-  "target_type": "nearest",
-  "max_level": 5
-}
+"drop_materials": 2
 ```
 
-### 3.3 武器类型
-| 类型 | 示例 | 行为 |
+### 5.2 当前材料掉落
+
+| 敌人 | drop_materials |
+|---|---:|
+| knife_mite | 1 |
+| fork_hound | 1 |
+| pressure_tank | 2 |
+| oil_cannon_ball | 1 |
+| self_destruct_cleaner | 1 |
+| elite_cold_box | 4 |
+| elite_stir_drone | 5 |
+| boss_control_core | 0 |
+
+### 5.3 结算规则
+
+- 经验：继续以地面掉落物存在
+- 材料：击杀时直接入账
+
+## 6. 波次设计
+
+### 6.1 6 段波次
+
+| Wave | 时间区间 | 刷怪池概览 |
 |---|---|---|
-| projectile | 冬瓜籽连发 | 索敌后发射投射物 |
-| orbit | 菜刀回旋盘 | 围绕玩家旋转造成持续伤害 |
-| forward_line | 热汤喷壶 | 朝移动方向或面向发射直线穿透伤害 |
-| area_random | 电磁蒸笼 | 在敌人密集区域随机落点造成范围伤害 |
-| beam | 保鲜膜激光 | 高伤低频，持续短时间命中 |
-| companion | 小瓜无人机 | 跟随玩家并自动攻击周边敌人 |
+| 1 | `0-90` | knife_mite |
+| 2 | `90-180` | knife_mite, fork_hound |
+| 3 | `180-270` | knife_mite, fork_hound |
+| 4 | `270-360` | + pressure_tank |
+| 5 | `360-450` | + oil_cannon_ball |
+| 6 | `450-600` | + self_destruct_cleaner |
 
-### 3.4 攻击流程
-1. 武器冷却倒计时
-2. 到时后根据目标类型选择目标
-3. 根据武器类型创建攻击表现
-4. 命中后结算伤害、暴击、穿透或范围效果
-5. 重置冷却
+### 6.2 波间规则
 
-### 3.5 索敌策略
-支持至少以下策略：
+- Wave 1~5 结束进入商店
+- Wave 6 不再进入商店
 
-- `nearest`：最近敌人
-- `forward`：前方敌人
-- `densest_area`：最密集区域
-- `self_orbit`：围绕自身
-- `random_enemy`：随机敌人
+### 6.3 Boss 节奏
 
-### 3.6 升级策略
-武器每次升级可改变以下维度之一：
-- 伤害
-- 冷却
-- 投射物数量
-- 穿透数
-- 范围
-- 特殊词条
+- `540s`：发出预警
+- `570s`：刷新 Boss
+- `600s`：结算
 
-## 4. 投射物与伤害模块设计
+## 7. 商店设计
 
-### 4.1 投射物属性
-| 字段 | 说明 |
-|---|---|
-| owner_weapon_id | 来源武器 |
-| damage | 伤害值 |
-| speed | 飞行速度 |
-| lifetime | 存活时长 |
-| pierce_left | 剩余穿透次数 |
-| hit_targets | 已命中目标集合 |
+### 7.1 商店状态
 
-### 4.2 命中结算
-```text
-1. 判断目标是否已命中且该武器不允许重复命中
-2. 计算是否暴击
-3. 应用最终伤害
-4. 播放命中特效
-5. 若穿透次数耗尽则销毁或回收
-```
+- `GameState.State.SHOP`
 
-### 4.3 对象池要求
-- 投射物不得频繁 `new/free`
-- 命中后优先回收到对象池
-- 粒子和爆点特效也建议池化
+### 7.2 商品来源
 
-## 5. 敌人模块设计
+- 候选池复用升级池合法性规则
+- 仅从当前玩家可获得的项中生成
 
-### 5.1 敌人配置建议
-```json
-{
-  "id": "knife_mite",
-  "name": "菜刀螨",
-  "hp": 25,
-  "move_speed": 90,
-  "damage": 8,
-  "contact_interval": 0.8,
-  "drop_exp": 1,
-  "ai_type": "chase",
-  "is_elite": false
-}
-```
+### 7.3 价格规则
 
-### 5.2 敌人分类
-| 敌人 | 类型 | 作用 |
-|---|---|---|
-| 菜刀螨 | 基础近战 | 建立清怪快感 |
-| 叉勺猎犬 | 高速近战 | 逼迫玩家走位 |
-| 压力锅重装体 | 高血量坦克 | 测试持续输出 |
-| 油烟炮台球 | 远程骚扰 | 增加位置压力 |
-| 自爆清洁球 | 爆炸型 | 制造紧急转向 |
-| 冷柜重装箱 | 精英 | 中局目标型敌人 |
-| 搅拌无人机队长 | 精英 | 带护卫与追踪弹 |
+| 分类 | 规则 | 价格 |
+|---|---|---:|
+| 解锁武器 | tier1 | 36 |
+| 解锁武器 | tier2 | 52 |
+| 武器升级 | tier1 | 32 |
+| 武器升级 | tier2 | 48 |
+| 全局强化 | tier1 | 26-30 |
+| 全局强化 | tier2 | 44 |
+| 刷新 | 每店 1 次 | 20 |
 
-### 5.3 敌人 AI 状态
-- `spawn`
-- `seek`
-- `attack`
-- `special`
-- `dead`
+### 7.4 交互规则
 
-### 5.4 简化 AI 策略
-对多数敌人使用轻量逻辑：
+- 每店 3 个商品
+- 可购买多个商品
+- 已购商品显示“已售出”
+- 买不起则按钮禁用
+- 每个商店只能刷新 1 次
 
-```text
-if distance_to_player > attack_range:
-    move_to_player()
-else:
-    perform_attack()
-```
+### 7.5 刷新规则
 
-仅少数敌人增加：
-- 冲锋准备
-- 远程发射
-- 自爆延迟
+优先避开当前商店已有商品；若候选不足，则允许回退到完整候选池补足。
 
-## 6. 刷怪管理器设计
+## 8. 升级与商店先后规则
 
-### 6.1 职责
-- 维护局内时间
-- 根据时间命中当前波次配置
-- 控制刷怪频率和上限
-- 定时触发精英与 Boss
+### 8.1 波末处理顺序
 
-### 6.2 波次配置示例
-```json
-[
-  {
-    "time_start": 0,
-    "time_end": 120,
-    "enemy_pool": ["knife_mite"],
-    "spawn_rate": 1.0,
-    "max_alive": 20
-  },
-  {
-    "time_start": 120,
-    "time_end": 240,
-    "enemy_pool": ["knife_mite", "fork_hound"],
-    "spawn_rate": 1.2,
-    "max_alive": 28
-  },
-  {
-    "time_start": 240,
-    "time_end": 360,
-    "enemy_pool": ["knife_mite", "fork_hound", "pressure_tank"],
-    "spawn_rate": 1.4,
-    "max_alive": 36
-  }
-]
-```
+1. 记录待进入商店的波次
+2. 自动收集场上经验掉落
+3. 若触发升级，则先走升级流程
+4. 所有待升级项处理完成后，再进入商店
 
-### 6.3 刷怪算法
-1. 根据当前时间选中当前波次
-2. 判断场上敌人数是否小于 `max_alive`
-3. 根据 `spawn_rate` 计算下一次刷新时间
-4. 按权重随机选择敌人类型
-5. 在玩家视野外安全区域生成敌人
+### 8.2 战斗冻结规则
 
-### 6.4 终局控制
-- 8 分钟后允许精英高频出现
-- 9 分 30 秒开始 Boss 预警
-- 10 分钟刷新 Boss
+- 升级面板：`LEVEL_UP` + 暂停树
+- 商店面板：`SHOP` + 暂停树
 
-## 7. 掉落模块设计
+## 9. HUD 设计
 
-### 7.1 掉落类型
-| 掉落物 | 作用 |
-|---|---|
-| 鲜度能量 | 经验值 |
-| 治疗包 | 恢复生命 |
-| 磁吸核心 | 一段时间内自动吸取经验 |
+### 9.1 当前显示信息
 
-### 7.2 掉落规则
-- 普通敌人大概率掉经验
-- 精英怪必掉大量经验，并概率掉治疗包
-- Boss 死亡后触发胜利，不依赖普通掉落
+- `HP`
+- `EXP`
+- `Lv`
+- `Wave X/6`
+- `Time mm:ss`
+- `Kills`
+- `Mat`
 
-### 7.3 吸附逻辑
-- 玩家进入拾取范围后掉落物转为追踪玩家
-- 磁吸核心激活时，全图经验球向玩家移动
+## 10. ConfigRepo 接口设计
 
-## 8. 经验与升级模块设计
+新增接口：
 
-### 8.1 经验公式
-为保证前期成长快、后期稍缓，建议使用非线性公式：
+- `character_db`
+- `get_character_config(id)`
+- `get_character_list()`
+- `get_wave_index(time_seconds)`
+- `get_total_wave_count()`
+- `get_shop_options(player, weapon_controller, exclude_keys)`
 
-```text
-required_exp(level) = 12 + level * 8 + level * level * 3
-```
+## 11. 重开与返回菜单规则
 
-参考效果：
-- Lv1 -> Lv2：23
-- Lv2 -> Lv3：40
-- Lv3 -> Lv4：63
-
-### 8.2 升级选项来源
-- 新武器解锁
-- 已有武器升级
-- 被动强化
-
-### 8.3 升级生成规则
-1. 从未满级候选池中筛选合法项
-2. 若玩家武器槽未满且等级较低，优先保证至少 1 个新武器候选
-3. 剔除已满级、重复无意义项
-4. 按权重随机抽取 3 项且不重复
-
-### 8.4 升级应用流程
-1. 暂停游戏
-2. 生成候选项并显示卡片
-3. 玩家点击选择
-4. 更新运行时数据
-5. 广播 `upgrade_applied`
-6. 恢复游戏
-
-## 9. Boss 设计
-
-### 9.1 Boss 名称
-后厨总控机
-
-### 9.2 设计目标
-- 看起来像终局敌人
-- 机制不多但辨识度强
-- 让玩家感受到“最后一分钟”的压迫
-
-### 9.3 Boss 阶段
-| 阶段 | 条件 | 行为 |
-|---|---|---|
-| 入场阶段 | 刚登场 | 播放预警、降落、召唤护卫 |
-| 阶段一 | 血量 100%~60% | 扇形弹幕、点名落区 |
-| 阶段二 | 血量 60%~20% | 弹幕更密，增加冲击波 |
-| 狂暴阶段 | 血量 20% 以下或倒计时将尽 | 缩短技能间隔，提高场面压力 |
-
-## 10. UI 模块设计
-
-### 10.1 HUD
-包含：
-- 生命条
-- 经验条
-- 当前等级
-- 倒计时
-- 当前 Buff 图标（可选）
-
-### 10.2 升级面板
-- 中央弹出 3 张选项卡
-- 显示名称、效果说明、稀有度颜色
-- 选中后关闭并恢复战斗
-
-### 10.3 结算面板
-显示：
-- 胜利/失败
-- 生存时间
-- 玩家等级
-- 击杀数
-- 主要武器
-- 再来一局 / 返回菜单
-
-## 11. 存档与设置设计
-
-### 11.1 存储内容
-- 主音量
-- BGM 音量
-- SFX 音量
-- 窗口模式
-- 可选的局外解锁数据
-
-### 11.2 存储方式
-- 本地 JSON 或 Godot `ConfigFile`
-
-## 12. 关键事件总线
-
-建议通过事件总线统一广播：
-
-- `player_damaged`
-- `player_dead`
-- `enemy_dead`
-- `exp_collected`
-- `level_up_ready`
-- `upgrade_applied`
-- `elite_spawned`
-- `boss_warning`
-- `boss_spawned`
-- `game_victory`
-- `game_defeat`
-
-这样可以降低战斗逻辑与 UI、音频、特效之间的直接耦合。
+- 重开：沿用当前角色、重置材料和战斗进度
+- 返回主菜单：退出当前局并回到默认选角态

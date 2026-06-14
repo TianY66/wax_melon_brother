@@ -9,14 +9,14 @@ const PROJECTILE_TEXTURES := {
 	"little_winter_drone": preload("res://imgs/06_特效/特效_小瓜无人机.png")
 }
 const PROJECTILE_BASE_SCALE := {
-	"winter_seed_burst": Vector2(0.062, 0.062),
-	"knife_disc": Vector2(0.066, 0.066),
-	"hot_soup_sprayer": Vector2(0.07, 0.07),
-	"electro_steamer": Vector2(0.1, 0.1),
-	"cling_wrap_laser": Vector2(0.094, 0.094),
-	"little_winter_drone": Vector2(0.07, 0.07),
-	"enemy_bullet": Vector2(0.026, 0.026),
-	"boss_bullet": Vector2(0.036, 0.036)
+	"winter_seed_burst": Vector2(0.028, 0.028),
+	"knife_disc": Vector2(0.034, 0.034),
+	"hot_soup_sprayer": Vector2(0.032, 0.032),
+	"electro_steamer": Vector2(0.05, 0.05),
+	"cling_wrap_laser": Vector2(0.06, 0.05),
+	"little_winter_drone": Vector2(0.032, 0.032),
+	"enemy_bullet": Vector2(0.018, 0.018),
+	"boss_bullet": Vector2(0.024, 0.024)
 }
 const PROJECTILE_REGIONS := {
 	"winter_seed_burst": Rect2(64, 0, 101, 1024),
@@ -36,9 +36,12 @@ var owner_body: Node = null
 var target_body: Node = null
 var is_critical := false
 var visual_sprite: Sprite2D
+var hit_cooldowns: Dictionary = {}
+var orbit_hit_interval := 0.22
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	body_exited.connect(_on_body_exited)
 
 func setup(weapon_id: String, damage_value: float, speed_value: float, dir: Vector2, pierce: int, owner: Node, crit: bool = false) -> void:
 	owner_weapon_id = weapon_id
@@ -52,6 +55,8 @@ func setup(weapon_id: String, damage_value: float, speed_value: float, dir: Vect
 	_add_collision()
 	monitoring = true
 	monitorable = true
+	if owner_weapon_id == "knife_disc":
+		orbit_hit_interval = 0.22
 
 func set_target(target: Node) -> void:
 	target_body = target
@@ -67,7 +72,7 @@ func _add_visual() -> void:
 		if owner_weapon_id == "knife_disc":
 			visual_sprite.rotation += PI * 0.25
 		elif owner_weapon_id == "cling_wrap_laser":
-			visual_sprite.scale = Vector2(0.11, 0.095)
+			visual_sprite.scale = Vector2(0.06, 0.05)
 		add_child(visual_sprite)
 
 		if is_critical:
@@ -83,41 +88,41 @@ func _add_visual() -> void:
 	if owner_weapon_id == "cling_wrap_laser":
 		# Beam shape
 		poly.polygon = PackedVector2Array([
-			Vector2(-3, -16),
-			Vector2(3, -16),
-			Vector2(3, 16),
-			Vector2(-3, 16)
+			Vector2(-9, -48),
+			Vector2(9, -48),
+			Vector2(9, 48),
+			Vector2(-9, 48)
 		])
 	elif owner_weapon_id == "electro_steamer":
 		# Big energy ball
 		poly.polygon = PackedVector2Array([
-			Vector2(-8, -8),
-			Vector2(8, -8),
-			Vector2(8, 8),
-			Vector2(-8, 8)
+			Vector2(-24, -24),
+			Vector2(24, -24),
+			Vector2(24, 24),
+			Vector2(-24, 24)
 		])
 	elif owner_weapon_id == "enemy_bullet":
 		poly.polygon = PackedVector2Array([
-			Vector2(-4, -4),
-			Vector2(4, -4),
-			Vector2(4, 4),
-			Vector2(-4, 4)
+			Vector2(-12, -12),
+			Vector2(12, -12),
+			Vector2(12, 12),
+			Vector2(-12, 12)
 		])
 		col = Color(1, 0.35, 0.35, 1)
 	elif owner_weapon_id == "boss_bullet":
 		poly.polygon = PackedVector2Array([
-			Vector2(-6, -6),
-			Vector2(6, -6),
-			Vector2(6, 6),
-			Vector2(-6, 6)
+			Vector2(-18, -18),
+			Vector2(18, -18),
+			Vector2(18, 18),
+			Vector2(-18, 18)
 		])
 		col = Color(1, 0.2, 0.55, 1)
 	else:
 		poly.polygon = PackedVector2Array([
-			Vector2(-5, -5),
-			Vector2(5, -5),
-			Vector2(5, 5),
-			Vector2(-5, 5)
+			Vector2(-15, -15),
+			Vector2(15, -15),
+			Vector2(15, 15),
+			Vector2(-15, 15)
 		])
 
 	poly.color = col
@@ -128,7 +133,7 @@ func _add_visual() -> void:
 		poly.color = Color(1, 0.85, 0.1, 1)
 		var glow := Polygon2D.new()
 		glow.polygon = PackedVector2Array([
-			Vector2(-8, -8), Vector2(8, -8), Vector2(8, 8), Vector2(-8, 8)
+			Vector2(-24, -24), Vector2(24, -24), Vector2(24, 24), Vector2(-24, 24)
 		])
 		glow.color = Color(1, 0.9, 0.2, 0.3)
 		add_child(glow)
@@ -151,6 +156,8 @@ func _add_collision() -> void:
 	var collision := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
 	match owner_weapon_id:
+		"knife_disc":
+			shape.radius = 26.0
 		"electro_steamer":
 			shape.radius = 6.0
 		"boss_bullet":
@@ -161,6 +168,9 @@ func _add_collision() -> void:
 	add_child(collision)
 
 func _physics_process(delta: float) -> void:
+	if owner_weapon_id == "knife_disc":
+		_tick_orbit_hit_cooldowns(delta)
+		_tick_orbit_damage()
 	global_position += direction * speed * delta
 	if is_instance_valid(visual_sprite):
 		visual_sprite.rotation = direction.angle()
@@ -174,15 +184,28 @@ func _physics_process(delta: float) -> void:
 func _on_body_entered(body: Node) -> void:
 	if body == owner_body:
 		return
+	if owner_weapon_id == "knife_disc":
+		return
 	# Enemy bullets should not hit other enemies
 	var is_enemy_bullet := owner_weapon_id in ["enemy_bullet", "boss_bullet"]
 	if is_enemy_bullet and body.has_method("take_damage") and body.get("enemy_id") != "":
 		return
 	if body.has_method("take_damage"):
+		if owner_weapon_id == "knife_disc":
+			var target_id := body.get_instance_id()
+			if not hit_cooldowns.has(target_id):
+				body.take_damage(damage, owner_weapon_id)
+				hit_cooldowns[target_id] = orbit_hit_interval
+			return
 		body.take_damage(damage, owner_weapon_id)
 		pierce_left -= 1
 		if pierce_left < 0:
 			_despawn()
+
+func _on_body_exited(body: Node) -> void:
+	if owner_weapon_id != "knife_disc":
+		return
+	hit_cooldowns.erase(body.get_instance_id())
 
 func _despawn() -> void:
 	if is_queued_for_deletion():
@@ -208,6 +231,34 @@ func _check_direct_player_hit() -> void:
 	if global_position.distance_to(player.global_position) <= hit_radius:
 		player.take_damage(damage, owner_weapon_id)
 		_despawn()
+
+func _tick_orbit_hit_cooldowns(delta: float) -> void:
+	if hit_cooldowns.is_empty():
+		return
+	var expired: Array = []
+	for target_id_variant in hit_cooldowns.keys():
+		var target_id := int(target_id_variant)
+		var time_left := float(hit_cooldowns[target_id]) - delta
+		if time_left <= 0.0:
+			expired.append(target_id)
+		else:
+			hit_cooldowns[target_id] = time_left
+	for target_id in expired:
+		hit_cooldowns.erase(target_id)
+
+func _tick_orbit_damage() -> void:
+	for body in get_overlapping_bodies():
+		if body == owner_body:
+			continue
+		if not is_instance_valid(body) or not body.has_method("take_damage"):
+			continue
+		if body.get("enemy_id") == "":
+			continue
+		var target_id := body.get_instance_id()
+		if hit_cooldowns.has(target_id):
+			continue
+		body.take_damage(damage, owner_weapon_id)
+		hit_cooldowns[target_id] = orbit_hit_interval
 
 func _build_projectile_texture(weapon_id: String, tex: Texture2D) -> Texture2D:
 	if not PROJECTILE_REGIONS.has(weapon_id):

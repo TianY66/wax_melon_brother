@@ -6,17 +6,19 @@
     "damage": 11,
     "contact_interval": 0.55,
     "drop_exp": 1,
+    "drop_materials": 1,
     "ai_type": "chase",
     "elite": false,
     "colors": ["#ff6b6b", "#ff8f8f"]
   },
   "fork_hound": {
     "name": "叉勺猎犬",
-    "hp": 14,
+    "hp": 12,
     "move_speed": 142,
     "damage": 10,
     "contact_interval": 0.42,
     "drop_exp": 1,
+    "drop_materials": 1,
     "ai_type": "chase",
     "elite": false,
     "colors": ["#ffb46b", "#ffc98f"]
@@ -28,6 +30,7 @@
     "damage": 15,
     "contact_interval": 0.8,
     "drop_exp": 3,
+    "drop_materials": 2,
     "ai_type": "tank",
     "elite": false,
     "colors": ["#8cc7a1", "#b5e0c1"]
@@ -39,6 +42,7 @@
     "damage": 9,
     "contact_interval": 0.75,
     "drop_exp": 2,
+    "drop_materials": 1,
     "ai_type": "ranged",
     "elite": false,
     "colors": ["#6cc7ff", "#a7e0ff"]
@@ -50,6 +54,7 @@
     "damage": 22,
     "contact_interval": 0.0,
     "drop_exp": 2,
+    "drop_materials": 1,
     "ai_type": "explode",
     "elite": false,
     "colors": ["#ffe06c", "#fff2a8"]
@@ -61,6 +66,7 @@
     "damage": 20,
     "contact_interval": 0.6,
     "drop_exp": 8,
+    "drop_materials": 4,
     "ai_type": "tank",
     "elite": true,
     "colors": ["#a6ffea", "#d4fff6"]
@@ -72,6 +78,7 @@
     "damage": 17,
     "contact_interval": 0.7,
     "drop_exp": 10,
+    "drop_materials": 5,
     "ai_type": "ranged",
     "elite": true,
     "colors": ["#d8b5ff", "#ead6ff"]
@@ -83,6 +90,7 @@
     "damage": 24,
     "contact_interval": 0.45,
     "drop_exp": 0,
+    "drop_materials": 0,
     "ai_type": "boss",
     "elite": false,
     "colors": ["#ff8bd4", "#ffb7e4"]

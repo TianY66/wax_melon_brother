@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+signal pause_requested
+
 const UI_THEME := preload("res://scripts/ui/ui_theme.gd")
 
 var player: Node
@@ -11,6 +13,9 @@ var info_label: Label
 var boss_warning_label: Label
 var upgrade_feedback_label: Label
 var upgrade_feedback_tween: Tween
+var pause_button: Button
+var wave_index := 1
+var total_waves := 1
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -22,17 +27,18 @@ func _build_ui() -> void:
 	var root := Control.new()
 	root.name = "Root"
 	root.theme = UI_THEME.get_default_theme()
-	root.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	root.offset_left = 16
-	root.offset_top = 16
-	root.offset_right = -16
-	root.offset_bottom = 120
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(root)
 
+	var center_top := CenterContainer.new()
+	center_top.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	center_top.offset_top = 16
+	center_top.offset_bottom = 132
+	root.add_child(center_top)
+
 	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	panel.custom_minimum_size = Vector2(320, 0)
-	root.add_child(panel)
+	panel.custom_minimum_size = Vector2(360, 0)
+	center_top.add_child(panel)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 6)
@@ -48,7 +54,7 @@ func _build_ui() -> void:
 	hp_hbox.add_child(hp_label)
 
 	hp_bar = ProgressBar.new()
-	hp_bar.custom_minimum_size = Vector2(220, 16)
+	hp_bar.custom_minimum_size = Vector2(260, 16)
 	hp_bar.set_v_size_flags(Control.SIZE_SHRINK_CENTER)
 	hp_hbox.add_child(hp_bar)
 
@@ -62,10 +68,11 @@ func _build_ui() -> void:
 	exp_hbox.add_child(exp_label)
 
 	exp_bar = ProgressBar.new()
-	exp_bar.custom_minimum_size = Vector2(220, 14)
+	exp_bar.custom_minimum_size = Vector2(260, 14)
 	exp_hbox.add_child(exp_bar)
 
 	info_label = Label.new()
+	info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info_label.add_theme_font_size_override("font_size", 14)
 	info_label.add_theme_color_override("font_color", Color.WHITE)
 	vbox.add_child(info_label)
@@ -88,6 +95,19 @@ func _build_ui() -> void:
 	upgrade_feedback_label.modulate = Color(1, 1, 1, 0)
 	add_child(upgrade_feedback_label)
 
+	pause_button = Button.new()
+	pause_button.text = "暂停"
+	pause_button.tooltip_text = "暂停游戏"
+	pause_button.custom_minimum_size = Vector2(88, 36)
+	pause_button.focus_mode = Control.FOCUS_NONE
+	pause_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	pause_button.offset_left = -112
+	pause_button.offset_top = 18
+	pause_button.offset_right = -24
+	pause_button.offset_bottom = 54
+	pause_button.pressed.connect(func(): pause_requested.emit())
+	root.add_child(pause_button)
+
 func set_player(p: Node) -> void:
 	player = p
 
@@ -109,6 +129,11 @@ func update_time(elapsed: float) -> void:
 	elapsed_time = elapsed
 	_update_text()
 
+func set_wave_info(current_wave: int, wave_count: int) -> void:
+	wave_index = current_wave
+	total_waves = wave_count
+	_update_text()
+
 func _update_text() -> void:
 	if not is_instance_valid(player):
 		return
@@ -117,10 +142,11 @@ func _update_text() -> void:
 	var secs := int(elapsed_time) % 60
 	var level_value: int = player.get_level() if player.has_method("get_level") else 1
 	var kill_value: int = player.get_kill_count() if player.has_method("get_kill_count") else 0
-	info_label.text = "Lv.%d  时间 %02d:%02d  击杀 %d" % [level_value, mins, secs, kill_value]
+	var materials_value: int = player.get_materials() if player.has_method("get_materials") else 0
+	info_label.text = "Lv.%d  Wave %d/%d  Time %02d:%02d  Kills %d  Mat %d" % [level_value, wave_index, total_waves, mins, secs, kill_value, materials_value]
 
 func _on_boss_warning(seconds_left: int) -> void:
-	boss_warning_label.text = "警告：Boss 还有 %d 秒到达！" % seconds_left
+	boss_warning_label.text = "Warning: Boss in %d s!" % seconds_left
 	boss_warning_label.show()
 	var tween := create_tween()
 	tween.tween_interval(5.0)
@@ -128,7 +154,7 @@ func _on_boss_warning(seconds_left: int) -> void:
 
 func _on_upgrade_applied(option: Dictionary) -> void:
 	var upgrade_name := String(option.get("name", "Upgrade"))
-	upgrade_feedback_label.text = "已获得：" + upgrade_name
+	upgrade_feedback_label.text = "Gained: " + upgrade_name
 	upgrade_feedback_label.scale = Vector2(0.92, 0.92)
 	upgrade_feedback_label.modulate = Color(1, 1, 1, 1)
 

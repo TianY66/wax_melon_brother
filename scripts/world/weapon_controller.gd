@@ -10,16 +10,19 @@ var weapon_runtime: Dictionary = {}
 var weapon_damage_bonus: Dictionary = {}
 var weapon_cooldown_bonus: Dictionary = {}
 var weapon_projectile_bonus: Dictionary = {}
+var companion_visual_scale := Vector2(0.04, 0.04)
+var area_fx_scale_factor := 0.14
 
 # Companion drone tracking
 var companion_drone: Node = null
 var orbit_knives: Array = []
 
-func setup(player) -> void:
+func setup(player, starting_weapon_id: String = "winter_seed_burst") -> void:
 	owner_player = player
-	_unlock_weapon("winter_seed_burst")
+	_unlock_weapon(starting_weapon_id if not starting_weapon_id.is_empty() else "winter_seed_burst")
 
 func tick(delta: float) -> void:
+	_prune_runtime_nodes()
 	for weapon_id in owned_weapons:
 		var config: Dictionary = ConfigRepo.get_weapon_config(weapon_id)
 		var wtype: String = String(config.get("type", "projectile"))
@@ -45,12 +48,35 @@ func cleanup() -> void:
 			knife.queue_free()
 	orbit_knives.clear()
 
+func reset_runtime_nodes() -> void:
+	companion_drone = null
+	orbit_knives.clear()
+	for weapon_id_variant in owned_weapons:
+		var weapon_id := String(weapon_id_variant)
+		var config: Dictionary = ConfigRepo.get_weapon_config(weapon_id)
+		var runtime: Dictionary = weapon_runtime.get(weapon_id, {})
+		var wtype := String(config.get("type", "projectile"))
+		if wtype in ["orbit", "companion"]:
+			runtime["cooldown_left"] = 0.0
+			weapon_runtime[weapon_id] = runtime
+
 func _unlock_weapon(weapon_id: String) -> void:
 	if owned_weapons.has(weapon_id):
 		return
 	owned_weapons.append(weapon_id)
 	weapon_levels[weapon_id] = 1
 	weapon_runtime[weapon_id] = {"cooldown_left": 0.1}
+
+func _prune_runtime_nodes() -> void:
+	if not is_instance_valid(companion_drone):
+		companion_drone = null
+	if orbit_knives.is_empty():
+		return
+	var valid_knives: Array = []
+	for knife in orbit_knives:
+		if is_instance_valid(knife):
+			valid_knives.append(knife)
+	orbit_knives = valid_knives
 
 func _get_cooldown(weapon_id: String) -> float:
 	var config: Dictionary = ConfigRepo.get_weapon_config(weapon_id)
@@ -129,7 +155,7 @@ func _fire_orbit(weapon_id: String, config: Dictionary) -> void:
 		var knife: Node = PROJECTILE_SCENE.instantiate()
 		var damage_bonus: float = float(weapon_damage_bonus.get(weapon_id, 0.0))
 		var damage: float = float(config.get("base_damage", 8)) * (1.0 + owner_player.damage_bonus_pct + damage_bonus)
-		knife.setup(weapon_id, damage, 0, Vector2.RIGHT, 1, owner_player, false)
+		knife.setup(weapon_id, damage, 0, Vector2.RIGHT, 999999, owner_player, false)
 		knife.lifetime = 999.0
 		var root: Node = owner_player.get_parent()
 		var container: Node = root.get_node_or_null("ProjectileContainer")
@@ -257,7 +283,6 @@ func _fire_beam(weapon_id: String, config: Dictionary) -> void:
 	var beam_proj: Node = PROJECTILE_SCENE.instantiate()
 	beam_proj.setup(weapon_id, damage * 0.3, 2400, direction, 10, owner_player, false)
 	beam_proj.global_position = owner_player.global_position + direction * 24.0
-	beam_proj.scale = Vector2(1, 2.5)
 	var container: Node = root.get_node_or_null("ProjectileContainer")
 	if container:
 		container.add_child(beam_proj)
@@ -290,7 +315,7 @@ func _create_companion_node(weapon_id: String, config: Dictionary) -> Node:
 	var sprite := Sprite2D.new()
 	sprite.texture = COMPANION_TEXTURE
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	sprite.scale = Vector2(0.084, 0.084)
+	sprite.scale = companion_visual_scale
 	drone.add_child(sprite)
 
 	var collision := CollisionShape2D.new()
@@ -361,7 +386,7 @@ func _spawn_area_fx(position: Vector2, radius: float, config: Dictionary) -> voi
 	var fx := Area2D.new()
 	var sprite := Sprite2D.new()
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	sprite.scale = Vector2((radius / 160.0) * 0.26, (radius / 160.0) * 0.26)
+	sprite.scale = Vector2((radius / 160.0) * area_fx_scale_factor, (radius / 160.0) * area_fx_scale_factor)
 	var tex: Texture2D = null
 	var weapon_type := String(config.get("type", ""))
 	if weapon_type == "area_random":

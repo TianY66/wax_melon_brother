@@ -74,6 +74,7 @@ func _choose(index: int) -> void:
 	if index < 0 or index >= options.size():
 		return
 	choice_selected.emit(options[index])
+	options.clear()
 
 func _set_panel_visible(visible: bool) -> void:
 	if is_instance_valid(root_control):

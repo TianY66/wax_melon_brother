@@ -19,9 +19,10 @@ func _show_menu() -> void:
 	add_child(_current_scene)
 	_current_scene.start_game_requested.connect(_start_game)
 
-func _start_game() -> void:
+func _start_game(character_id: String = "winter_melon_brother_1") -> void:
 	_clear_scene()
 	_current_scene = GAME_SCENE.instantiate()
+	if _current_scene.has_method("setup_run"):
+		_current_scene.setup_run(character_id)
 	add_child(_current_scene)
 	_current_scene.back_to_menu_requested.connect(_show_menu)
-
